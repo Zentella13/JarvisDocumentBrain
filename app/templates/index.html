@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis Document Brain</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <main>
+        <h1>Jarvis Document Brain</h1>
+        <p>Escanea una carpeta y busca dentro de tus documentos.</p>
+
+        <form action="/scan" method="post">
+            <label for="folder_path">Carpeta a escanear</label>
+            <input type="text" id="folder_path" name="folder_path" placeholder="C:/ruta/a/la/carpeta" required>
+            <button type="submit">Escanear</button>
+        </form>
+
+        <form action="/search" method="get">
+            <label for="q">Buscar texto</label>
+            <input type="text" id="q" name="q" placeholder="Palabra o frase" value="{{ query or '' }}">
+            <button type="submit">Buscar</button>
+        </form>
+
+        {% if folder_path %}
+            <p>Carpeta escaneada: {{ folder_path }}</p>
+        {% endif %}
+
+        <ul>
+            {% for result in results %}
+                <li>
+                    <strong>{{ result.filename }}</strong><br>
+                    <span>{{ result.path }}</span><br>
+                    <small>{{ result.content[:250] }}</small>
+                </li>
+            {% endfor %}
+        </ul>
+    </main>
+</body>
+</html>

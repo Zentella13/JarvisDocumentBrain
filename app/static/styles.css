@@ -1,0 +1,7 @@
+body { font-family: Arial, sans-serif; margin: 2rem; background: #f4f7fb; color: #223; }
+main { max-width: 900px; margin: auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+form { margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+input { flex: 1; min-width: 240px; padding: 0.6rem; }
+button { padding: 0.6rem 1rem; }
+ul { padding-left: 1rem; }
+li { margin-bottom: 1rem; }
