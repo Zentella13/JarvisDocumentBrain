@@ -21,4 +21,33 @@ def init_db() -> None:
         """
     )
     conn.commit()
+
+    cursor.execute("PRAGMA table_info(documents)")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+    migrations = {
+        "extension": "TEXT",
+ "size_bytes": "INTEGER",
+        "sha256": "TEXT",
+        "last_modified": "TEXT",
+        "indexed_at": "TEXT",
+    }
+    for column_name, column_type in migrations.items():
+        if column_name not in existing_columns:
+            cursor.execute(f"ALTER TABLE documents ADD COLUMN {column_name} {column_type}")
+    conn.commit()
+
+    cursor.execute(
+        """
+        DELETE FROM documents
+        WHERE id NOT IN (
+            SELECT MAX(id) FROM documents GROUP BY path
+        )
+        """
+    )
+    conn.commit()
+
+    cursor.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_path ON documents(path)"
+    )
+    conn.commit()
     conn.close()

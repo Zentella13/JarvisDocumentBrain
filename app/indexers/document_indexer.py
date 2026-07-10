@@ -29,14 +29,23 @@ class DocumentIndexer:
             if suffix not in {".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".markdown"}:
                 continue
 
-            text = extract_text(file_path)
             sha256 = self._compute_sha256(file_path)
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT sha256, content FROM documents WHERE path = ?",
+                (str(file_path),),
+            )
+            existing = cursor.fetchone()
+            if existing and existing[0] == sha256:
+                text = existing[1]
+            else:
+                text = extract_text(file_path)
+
             size_bytes = file_path.stat().st_size
             last_modified = datetime.fromtimestamp(file_path.stat().st_mtime, tz=timezone.utc).isoformat()
             indexed_at = datetime.now(timezone.utc).isoformat()
 
-            conn = get_connection()
-            cursor = conn.cursor()
             cursor.execute(
                 """
                 INSERT INTO documents (filename, path, extension, size_bytes, sha256, last_modified, indexed_at, content)

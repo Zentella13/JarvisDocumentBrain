@@ -13,15 +13,20 @@
 
         <form action="/scan" method="post">
             <label for="folder_path">Carpeta a escanear</label>
-            <input type="text" id="folder_path" name="folder_path" placeholder="C:/ruta/a/la/carpeta" required>
+            <input type="text" id="folder_path" name="folder_path" placeholder="C:/ruta/a/la/carpeta" value="{{ folder_path or '' }}" required>
             <button type="submit">Escanear</button>
         </form>
 
         <form action="/search" method="get">
             <label for="q">Buscar texto</label>
             <input type="text" id="q" name="q" placeholder="Palabra o frase" value="{{ query or '' }}">
+            <input type="hidden" name="folder_path" value="{{ folder_path or '' }}">
             <button type="submit">Buscar</button>
         </form>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
 
         {% if folder_path %}
             <p>Carpeta escaneada: {{ folder_path }}</p>
