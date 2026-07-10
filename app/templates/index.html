@@ -8,21 +8,71 @@
 </head>
 <body>
     <main>
-        <h1>Jarvis Document Brain</h1>
-        <p>Escanea una carpeta y busca dentro de tus documentos.</p>
+        <header class="page-header">
+            <h1>Jarvis Document Brain</h1>
+            <p>Escanea una carpeta y busca dentro de tus documentos.</p>
+        </header>
 
-        <form action="/scan" method="post">
-            <label for="folder_path">Carpeta a escanear</label>
-            <input type="text" id="folder_path" name="folder_path" placeholder="C:/ruta/a/la/carpeta" value="{{ folder_path or '' }}" required>
-            <button type="submit">Escanear</button>
-        </form>
+        {% if dashboard %}
+            <section class="dashboard-overview">
+                <div class="section-header">
+                    <h2>Estado de la biblioteca</h2>
+                </div>
+                <div class="dashboard-cards">
+                    <article class="stat-card">
+                        <span class="stat-label">Total de documentos</span>
+                        <strong>{{ dashboard.total_documents }}</strong>
+                    </article>
+                    <article class="stat-card">
+                        <span class="stat-label">Espacio indexado</span>
+                        <strong>{{ dashboard.total_size_display }}</strong>
+                    </article>
+                    <article class="stat-card">
+                        <span class="stat-label">Última indexación</span>
+                        <strong>{{ dashboard.last_indexed_at or 'N/A' }}</strong>
+                    </article>
+                </div>
+                {% if dashboard.by_extension %}
+                    <div class="extension-card card">
+                        <h3>Conteo por tipo de archivo</h3>
+                        <ul>
+                            {% for ext in dashboard.by_extension %}
+                                <li>{{ ext.extension or '(sin extensión)' }}: {{ ext.count }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                {% if dashboard.recent_documents %}
+                    <div class="recent-documents card">
+                        <h3>Documentos recientes</h3>
+                        <ul>
+                            {% for doc in dashboard.recent_documents %}
+                                <li>
+                                    <strong>{{ doc.filename }}</strong> <span class="doc-extension">{{ doc.extension or 'sin extensión' }}</span><br>
+                                    <span class="doc-path">{{ doc.path }}</span><br>
+                                    <small>Indexado: {{ doc.indexed_at or 'N/A' }}</small>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </section>
+        {% endif %}
 
-        <form action="/search" method="get">
-            <label for="q">Buscar texto</label>
-            <input type="text" id="q" name="q" placeholder="Palabra o frase" value="{{ query or '' }}">
-            <input type="hidden" name="folder_path" value="{{ folder_path or '' }}">
-            <button type="submit">Buscar</button>
-        </form>
+        <section class="action-panel">
+            <form class="scan-form card" action="/scan" method="post">
+                <label for="folder_path">Carpeta a escanear</label>
+                <input type="text" id="folder_path" name="folder_path" placeholder="C:/ruta/a/la/carpeta" value="{{ folder_path or '' }}" required>
+                <button type="submit">Escanear</button>
+            </form>
+
+            <form class="search-form card" action="/search" method="get">
+                <label for="q">Buscar texto</label>
+                <input type="text" id="q" name="q" placeholder="Palabra o frase" value="{{ query or '' }}">
+                <input type="hidden" name="folder_path" value="{{ folder_path or '' }}">
+                <button type="submit">Buscar</button>
+            </form>
+        </section>
 
         {% if error %}
             <p class="error">{{ error }}</p>
