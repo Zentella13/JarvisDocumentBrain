@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
 from app.indexers.document_indexer import DocumentIndexer
+from app.services.chat_service import answer_document_question
 from app.services.dashboard_service import get_dashboard_stats
 
 router = APIRouter()
@@ -11,13 +12,34 @@ router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 
 
+def _build_template_context(request: Request, extra: dict[str, object] | None = None) -> dict[str, object]:
+    base = {
+        "request": request,
+        "results": [],
+        "folder_path": "",
+        "dashboard": get_dashboard_stats(),
+        "query": "",
+        "summary": None,
+        "files": [],
+        "error": "",
+        "question": "",
+        "chat_answer": "",
+        "chat_sources": [],
+        "chat_model": None,
+        "chat_elapsed": None,
+        "chat_error": "",
+    }
+    if extra:
+        base.update(extra)
+    return base
+
+
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request) -> HTMLResponse:
-    dashboard = get_dashboard_stats()
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"request": request, "results": [], "folder_path": "", "dashboard": dashboard},
+        context=_build_template_context(request),
     )
 
 
@@ -30,31 +52,48 @@ async def scan_folder(request: Request, folder_path: str = Form(...)) -> HTMLRes
         scan_result = indexer.index_folder()
     except Exception as exc:
         error = str(exc) or "Error al escanear la carpeta."
-    dashboard = get_dashboard_stats()
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={
-            "request": request,
-            "results": [],
+        context=_build_template_context(request, {
             "folder_path": folder_path,
             "error": error,
             "summary": scan_result["summary"],
             "files": scan_result["files"],
-            "dashboard": dashboard,
-        },
+        }),
     )
 
 
 @router.get("/search", response_class=HTMLResponse)
 async def search(request: Request, q: str = "", folder_path: str = "") -> HTMLResponse:
     results = []
-    dashboard = get_dashboard_stats()
     if q:
         indexer = DocumentIndexer(".")
         results = indexer.search(q)
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"request": request, "results": results, "query": q, "folder_path": folder_path, "dashboard": dashboard},
+        context=_build_template_context(request, {
+            "results": results,
+            "query": q,
+            "folder_path": folder_path,
+        }),
+    )
+
+
+@router.post("/chat", response_class=HTMLResponse)
+async def chat(request: Request, question: str = Form(...), folder_path: str = Form("")) -> HTMLResponse:
+    chat_result = answer_document_question(question)
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context=_build_template_context(request, {
+            "folder_path": folder_path,
+            "question": question,
+            "chat_answer": chat_result.get("answer", ""),
+            "chat_sources": chat_result.get("sources", []),
+            "chat_model": chat_result.get("model"),
+            "chat_elapsed": chat_result.get("elapsed_seconds"),
+            "chat_error": chat_result.get("error", ""),
+        }),
     )

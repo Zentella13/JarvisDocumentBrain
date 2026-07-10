@@ -74,6 +74,47 @@
             </form>
         </section>
 
+        <section class="chat-panel card">
+            <div class="section-header">
+                <h2>Hablar con JARVIS</h2>
+            </div>
+            <form action="/chat" method="post" class="chat-form">
+                <label for="question">Haz una pregunta</label>
+                <textarea id="question" name="question" rows="4" maxlength="2000" placeholder="Escribe tu pregunta aquí...">{{ question or '' }}</textarea>
+                <input type="hidden" name="folder_path" value="{{ folder_path or '' }}">
+                <button type="submit">Preguntar a JARVIS</button>
+            </form>
+
+            {% if chat_error %}
+                <p class="error">{{ chat_error }}</p>
+            {% endif %}
+
+            {% if chat_answer %}
+                <div class="jarvis-response card">
+                    <div class="response-meta">
+                        <span>Modelo: {{ chat_model or 'N/A' }}</span>
+                        <span>Tiempo: {{ chat_elapsed | round(2) }} s</span>
+                    </div>
+                    <div class="response-text">{{ chat_answer | replace('\n', '<br>') | safe }}</div>
+                </div>
+            {% endif %}
+
+            {% if chat_sources %}
+                <div class="chat-sources card">
+                    <h3>Fuentes consultadas</h3>
+                    <ul>
+                        {% for source in chat_sources %}
+                            <li>
+                                <strong>[{{ loop.index }}] {{ source.filename }}</strong> ({{ source.extension or 'sin extensión' }})<br>
+                                <span>{{ source.path }}</span><br>
+                                <p>{{ source.snippet }}</p>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </section>
+
         {% if error %}
             <p class="error">{{ error }}</p>
         {% endif %}
