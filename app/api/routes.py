@@ -22,16 +22,23 @@ async def home(request: Request) -> HTMLResponse:
 @router.post("/scan", response_class=HTMLResponse)
 async def scan_folder(request: Request, folder_path: str = Form(...)) -> HTMLResponse:
     error = ""
-    results = []
+    scan_result = {"summary": {"total": 0, "new": 0, "updated": 0, "unchanged": 0, "errors": 0}, "files": []}
     try:
         indexer = DocumentIndexer(folder_path)
-        results = indexer.index_folder()
+        scan_result = indexer.index_folder()
     except Exception as exc:
         error = str(exc) or "Error al escanear la carpeta."
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"request": request, "results": results, "folder_path": folder_path, "error": error},
+        context={
+            "request": request,
+            "results": [],
+            "folder_path": folder_path,
+            "error": error,
+            "summary": scan_result["summary"],
+            "files": scan_result["files"],
+        },
     )
 
 

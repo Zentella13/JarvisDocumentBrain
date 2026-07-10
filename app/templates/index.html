@@ -32,6 +32,41 @@
             <p>Carpeta escaneada: {{ folder_path }}</p>
         {% endif %}
 
+        {% if summary %}
+            <section class="summary-cards">
+                <div class="card">Nuevos: {{ summary.new }}</div>
+                <div class="card">Actualizados: {{ summary.updated }}</div>
+                <div class="card">Sin cambios: {{ summary.unchanged }}</div>
+                <div class="card">Errores: {{ summary.errors }}</div>
+                <div class="card">Total revisado: {{ summary.total }}</div>
+            </section>
+        {% endif %}
+
+        {% if files %}
+            <section class="file-list">
+                <h2>Archivos procesados</h2>
+                <ul>
+                    {% for file in files %}
+                        <li class="file-item {{ file.status }}">
+                            <strong>{{ file.filename }}</strong> -
+                            <span>{{ file.path }}</span><br>
+                            <small>Estado: 
+                                {% if file.status == 'new' %}Nuevo
+                                {% elif file.status == 'updated' %}Actualizado
+                                {% elif file.status == 'unchanged' %}Sin cambios
+                                {% else %}Error
+                                {% endif %}
+                            </small>
+                            {% if file.error %}
+                                <p class="error">{{ file.error }}</p>
+                            {% endif %}
+                            <p>{{ file.content[:250] }}</p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
         <ul>
             {% for result in results %}
                 <li>

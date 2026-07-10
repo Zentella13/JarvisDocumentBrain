@@ -19,8 +19,16 @@ class DocumentIndexer:
                 digest.update(chunk)
         return digest.hexdigest()
 
-    def index_folder(self) -> list[dict[str, object]]:
-        indexed: list[dict[str, object]] = []
+    def index_folder(self) -> dict[str, object]:
+        summary = {
+            "total": 0,
+            "new": 0,
+            "updated": 0,
+            "unchanged": 0,
+            "errors": 0,
+        }
+        files: list[dict[str, object]] = []
+
         for file_path in self.root_folder.rglob("*"):
             if not file_path.is_file():
                 continue
@@ -28,6 +36,15 @@ class DocumentIndexer:
             suffix = file_path.suffix.lower()
             if suffix not in {".pdf", ".docx", ".xlsx", ".pptx", ".txt", ".md", ".markdown"}:
                 continue
+
+            summary["total"] += 1
+            file_info: dict[str, object] = {
+                "filename": file_path.name,
+                "path": str(file_path),
+                "status": "new",
+                "content": "",
+                "error": None,
+            }
 
             sha256 = self._compute_sha256(file_path)
             conn = get_connection()
@@ -37,45 +54,66 @@ class DocumentIndexer:
                 (str(file_path),),
             )
             existing = cursor.fetchone()
+
             if existing and existing[0] == sha256:
-                text = existing[1]
+                file_info["status"] = "unchanged"
+                file_info["content"] = existing[1] or ""
+                summary["unchanged"] += 1
+                conn.close()
+                files.append(file_info)
+                continue
+
+            if existing:
+                file_info["status"] = "updated"
             else:
+                file_info["status"] = "new"
+
+            try:
                 text = extract_text(file_path)
+                size_bytes = file_path.stat().st_size
+                last_modified = datetime.fromtimestamp(file_path.stat().st_mtime, tz=timezone.utc).isoformat()
+                indexed_at = datetime.now(timezone.utc).isoformat()
 
-            size_bytes = file_path.stat().st_size
-            last_modified = datetime.fromtimestamp(file_path.stat().st_mtime, tz=timezone.utc).isoformat()
-            indexed_at = datetime.now(timezone.utc).isoformat()
+                cursor.execute(
+                    """
+                    INSERT INTO documents (filename, path, extension, size_bytes, sha256, last_modified, indexed_at, content)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(path) DO UPDATE SET
+                        filename = excluded.filename,
+                        extension = excluded.extension,
+                        size_bytes = excluded.size_bytes,
+                        sha256 = excluded.sha256,
+                        last_modified = excluded.last_modified,
+                        indexed_at = excluded.indexed_at,
+                        content = excluded.content
+                    WHERE excluded.sha256 != documents.sha256
+                    """,
+                    (
+                        file_path.name,
+                        str(file_path),
+                        suffix,
+                        size_bytes,
+                        sha256,
+                        last_modified,
+                        indexed_at,
+                        text,
+                    ),
+                )
+                conn.commit()
+                conn.close()
 
-            cursor.execute(
-                """
-                INSERT INTO documents (filename, path, extension, size_bytes, sha256, last_modified, indexed_at, content)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(path) DO UPDATE SET
-                    filename = excluded.filename,
-                    extension = excluded.extension,
-                    size_bytes = excluded.size_bytes,
-                    sha256 = excluded.sha256,
-                    last_modified = excluded.last_modified,
-                    indexed_at = excluded.indexed_at,
-                    content = excluded.content
-                WHERE excluded.sha256 != documents.sha256
-                """,
-                (
-                    file_path.name,
-                    str(file_path),
-                    suffix,
-                    size_bytes,
-                    sha256,
-                    last_modified,
-                    indexed_at,
-                    text,
-                ),
-            )
-            conn.commit()
-            conn.close()
-            indexed.append({"filename": file_path.name, "path": str(file_path), "content": text})
+                file_info["content"] = text
+                summary[file_info["status"]] += 1
+            except Exception as exc:
+                conn.close()
+                file_info["status"] = "error"
+                file_info["error"] = str(exc) or "Error procesando el archivo"
+                file_info["content"] = existing[1] if existing else ""
+                summary["errors"] += 1
 
-        return indexed
+            files.append(file_info)
+
+        return {"summary": summary, "files": files}
 
     def search(self, query: str) -> list[dict[str, object]]:
         conn = get_connection()
