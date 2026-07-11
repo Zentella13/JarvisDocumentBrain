@@ -27,6 +27,10 @@ def _build_template_context(request: Request, extra: dict[str, object] | None = 
         "chat_sources": [],
         "chat_model": None,
         "chat_elapsed": None,
+        "chat_retrieval_seconds": None,
+        "chat_ollama_seconds": None,
+        "chat_source_count": 0,
+        "chat_context_characters": 0,
         "chat_error": "",
     }
     if extra:
@@ -94,6 +98,10 @@ async def chat(request: Request, question: str = Form(...), folder_path: str = F
             "chat_sources": chat_result.get("sources", []),
             "chat_model": chat_result.get("model"),
             "chat_elapsed": chat_result.get("elapsed_seconds"),
+            "chat_retrieval_seconds": chat_result.get("retrieval_seconds"),
+            "chat_ollama_seconds": chat_result.get("ollama_seconds"),
+            "chat_source_count": chat_result.get("source_count", 0),
+            "chat_context_characters": chat_result.get("context_characters", 0),
             "chat_error": chat_result.get("error", ""),
         }),
     )

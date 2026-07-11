@@ -93,9 +93,15 @@
                 <div class="jarvis-response card">
                     <div class="response-meta">
                         <span>Modelo: {{ chat_model or 'N/A' }}</span>
-                        <span>Tiempo: {{ chat_elapsed | round(2) }} s</span>
+                        <span>Tiempo total: {{ chat_elapsed | default(0) | round(2) }} s</span>
                     </div>
                     <div class="response-text">{{ chat_answer | replace('\n', '<br>') | safe }}</div>
+                    <div class="response-meta chat-metrics">
+                        <span>Recuperación: {{ chat_retrieval_seconds | default(0) | round(2) }} s</span>
+                        <span>Ollama: {{ chat_ollama_seconds | default(0) | round(2) }} s</span>
+                        <span>Fuentes: {{ chat_source_count }}</span>
+                        <span>Contexto: {{ chat_context_characters }} caracteres</span>
+                    </div>
                 </div>
             {% endif %}
 
